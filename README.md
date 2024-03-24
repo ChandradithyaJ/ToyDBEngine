@@ -1,5 +1,5 @@
 # ToyDBEngine
-[![Watch the demo]](https://www.youtube.com/watch?v=w1IdHESAFAE))
+[Demo Video](https://www.youtube.com/watch?v=w1IdHESAFAE)
 
 Currently supporting the following operations:
   - create table {tableName}
