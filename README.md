@@ -16,8 +16,8 @@ In the test folder, query files are present which are read and converted to inte
 
 Change the ```queryFileName``` variable in ```cs21b059_parser.java``` to a query file of your choice.
 
-```cs21b059.query``` is to create two tables with random values. \
-```joinTables.query``` is to perform a join operation with a condition.
+```cs21b059.query``` creates two tables with random values. \
+```joinTables.query``` performs a join operation on the two created tables with a specifed condition.
 
 ## Running
-Clone the repo to your local machine and run the runDBEngine shell file by going to the root directory and typing ```./runDBEngine.sh``` in the terminal.
+Clone the repo to your local machine and run the bash file by going to the root directory and typing ```./runDBEngine.sh``` in the terminal.
