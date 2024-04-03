@@ -8,4 +8,6 @@ Currently supporting the following operations:
   - select * from {tableName} (display all the rows in the table chosen)
   - join {table1Name} {table2Name} where {condition}
 
+Modifiable buffer size to reduce the number of records loaded into RAM at once
+
 Run cs21b059_parser.java to execute.

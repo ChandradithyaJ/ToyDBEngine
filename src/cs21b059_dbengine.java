@@ -124,13 +124,6 @@ public class cs21b059_dbengine{
             String line;
             int numLines = 0;
             while ((line = reader.readLine()) != null) {
-                if(line.trim().isEmpty()) {
-                    // empty line => EOF
-                    fileReadComplete = true;
-                    linesRead = 0;
-                    return load;
-                }
-
                 if (numLines == 0) {
                     String[] values = line.split("[;-]+");
                     for (int i = 0; i < values.length; i += 2) {
@@ -157,7 +150,7 @@ public class cs21b059_dbengine{
                 }
             }
             
-            // EOF if not hit above
+            // EOF
             if((line = reader.readLine()) == null){
                 fileReadComplete = true;
                 linesRead = 0;
@@ -236,8 +229,8 @@ public class cs21b059_dbengine{
         System.out.println("Inserted to table " + t.tableName.substring(0, t.tableName.length() - 4));
     }
 
-    private void select(Table table){
-        if(linesRead == 0 && !fileReadComplete){
+    private void select(Table table, boolean fields){
+        if((linesRead == 0 && !fileReadComplete) || fields){
             // display the fields first, and then the rows
             for (String attr : table.attributes)
                 System.out.print(attr + "\t|");
@@ -253,8 +246,10 @@ public class cs21b059_dbengine{
     private void join_tables(String tab1, String tab2, String condition){
         File f1 = new File("db/" + tab1 + ".txt");
         File f2 = new File("db/" + tab2 + ".txt");
-        Table t1 = load_table(f1, false);
-        Table t2 = load_table(f2, false);
+        Table t1 = load_table(f1, true);
+        Table t2 = load_table(f2, true);
+
+        boolean printFieldNames = true;
 
         t = new Table(); // to store the joined table
         // create the attributes and map their types for the joined table
@@ -267,20 +262,47 @@ public class cs21b059_dbengine{
             t.types.put(tab2 + "." + attr, t2.types.get(attr));
         }
 
-        // insert rows into the joined table to display
-        for(Hashtable<String, String> h1 : t1.rows){
-            for(Hashtable<String, String> h2 : t2.rows){
-                if(evalCondition(t1.tableName, t2.tableName, t1.types, t2.types, h1, h2, condition)){
-                    Hashtable<String, String> newRow = new Hashtable<>();
-                    for(String attr : h1.keySet()) newRow.put(tab1 + "." + attr, h1.get(attr));
-                    for (String attr : h2.keySet()) newRow.put(tab2 + "." + attr, h2.get(attr));
-                    t.rows.add(newRow);
+        boolean table1FileReadComplete = false;
+        int table1LinesRead = 0;
+        while(!table1FileReadComplete){
+            t1 = load_table(f1, false);
+            // store file pointer locally
+            table1LinesRead = linesRead;
+            table1FileReadComplete = fileReadComplete;
+
+            fileReadComplete = false;
+            linesRead = 0;
+
+            while(!fileReadComplete){
+                // load t2 and process the join until t2 has been read completely
+                t2 = load_table(f2, false);
+                // insert rows into the joined table to display
+                for (Hashtable<String, String> h1 : t1.rows) {
+                    for (Hashtable<String, String> h2 : t2.rows) {
+                        if (evalCondition(t1.tableName, t2.tableName, t1.types, t2.types, h1, h2, condition)) {
+                            Hashtable<String, String> newRow = new Hashtable<>();
+                            for (String attr : h1.keySet())
+                                newRow.put(tab1 + "." + attr, h1.get(attr));
+                            for (String attr : h2.keySet())
+                                newRow.put(tab2 + "." + attr, h2.get(attr));
+                            t.rows.add(newRow);
+
+                            // if buffer full, display and dump
+                            if(t.rows.size() == t.bufferSize){
+                                select(t, printFieldNames);
+                                t.rows = new ArrayList<>();
+                            }
+                        }
+                    }
                 }
             }
+
+            linesRead = table1LinesRead;
+            fileReadComplete = table1FileReadComplete;
         }
 
-        // display
-        select(t);
+        // display the rest
+        select(t, printFieldNames);
         // reset
         t = new Table(); 
     }
@@ -306,7 +328,7 @@ public class cs21b059_dbengine{
             File fileName = new File("db/" + args[1] + ".txt");
             while(!fileReadComplete){
                 t = load_table(fileName, false);
-                select(t);
+                select(t, false);
             }
             fileReadComplete = false; // reset boolean
             t = new Table(); // reset table instance
