@@ -1,0 +1,1 @@
+join cs21b059_table1 cs21b059_table2 where cs21b059_table1.i1 == cs21b059_table2.i21

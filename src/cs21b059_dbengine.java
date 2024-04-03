@@ -6,12 +6,108 @@ import java.util.Hashtable;
 class Table{
     public String tableName; 
     public ArrayList<String> attributes = new ArrayList<>();
-    public Hashtable<String, String> types = new Hashtable<>();
+    public Hashtable<String, String> types = new Hashtable<>(); // attribute - type mapping
     public ArrayList<Hashtable<String, String>> rows = new ArrayList<>();
 }
 
 public class cs21b059_dbengine{
     private Table t;
+
+    private boolean evalCondition(String tname1, String tname2, Hashtable<String, String> types1, Hashtable<String, String> types2, Hashtable<String, String> h1, Hashtable<String, String> h2, String condition){
+        String[] tokens = condition.split(" ");
+        tname1 = tname1.substring(0, tname1.length()-4);
+        tname2 = tname2.substring(0, tname2.length()-4);
+
+        // currently only supporting simple '==' operations
+        if(tokens[1].equals("==")){
+            String[] lhs = tokens[0].split("\\.");
+            String[] rhs = tokens[2].split("\\.");
+
+            // check for valid table names
+            if (lhs[0].equals(tname1)) {
+                if (rhs[0].equals(tname1)) {
+                    // check for type mismatch
+                    if (types1.get(lhs[1]).equals(types1.get(rhs[1]))) {
+                        String type = types1.get(lhs[1]);
+                        switch (type) {
+                            case "int":
+                                if (Integer.parseInt(h1.get(lhs[1])) == Integer.parseInt(h1.get(rhs[1])))
+                                    return true;
+                            case "string":
+                                if (h1.get(lhs[1]).equals(h1.get(rhs[1])))
+                                    return true;
+                            case "date":
+                                if (h1.get(lhs[1]).equals(h1.get(rhs[1])))
+                                    return true;
+                            case "float":
+                                if (Float.parseFloat(h1.get(lhs[1])) == Float.parseFloat(h1.get(rhs[1])))
+                                    return true;
+                        }
+                    }
+                } else if (rhs[0].equals(tname2)) {
+                    // check for type mismatch
+                    if (types1.get(lhs[1]).equals(types2.get(rhs[1]))) {
+                        String type = types1.get(lhs[1]);
+                        switch (type) {
+                            case "int":
+                                if (Integer.parseInt(h1.get(lhs[1])) == Integer.parseInt(h2.get(rhs[1])))
+                                    return true;
+                            case "string":
+                                if (h1.get(lhs[1]).equals(h2.get(rhs[1])))
+                                    return true;
+                            case "date":
+                                if (h1.get(lhs[1]).equals(h2.get(rhs[1])))
+                                    return true;
+                            case "float":
+                                if (Float.parseFloat(h1.get(lhs[1])) == Float.parseFloat(h2.get(rhs[1])))
+                                    return true;
+                        }
+                    }
+                }
+            } else if (lhs[0].equals(tname2)) {
+                if (rhs[0].equals(tname1)) {
+                    // check for type mismatch
+                    if (types2.get(lhs[1]).equals(types1.get(rhs[1]))) {
+                        String type = types2.get(lhs[1]);
+                        switch (type) {
+                            case "int":
+                                if (Integer.parseInt(h2.get(lhs[1])) == Integer.parseInt(h1.get(rhs[1])))
+                                    return true;
+                            case "string":
+                                if (h2.get(lhs[1]).equals(h1.get(rhs[1])))
+                                    return true;
+                            case "date":
+                                if (h2.get(lhs[1]).equals(h1.get(rhs[1])))
+                                    return true;
+                            case "float":
+                                if (Float.parseFloat(h2.get(lhs[1])) == Float.parseFloat(h1.get(rhs[1])))
+                                    return true;
+                        }
+                    }
+                } else if (rhs[0].equals(tname2)) {
+                    // check for type mismatch
+                    if (types2.get(lhs[1]).equals(types2.get(rhs[1]))) {
+                        String type = types2.get(lhs[1]);
+                        switch (type) {
+                            case "int":
+                                if (Integer.parseInt(h2.get(lhs[1])) == Integer.parseInt(h2.get(rhs[1])))
+                                    return true;
+                            case "string":
+                                if (h2.get(lhs[1]).equals(h2.get(rhs[1])))
+                                    return true;
+                            case "date":
+                                if (h2.get(lhs[1]).equals(h2.get(rhs[1])))
+                                    return true;
+                            case "float":
+                                if (Float.parseFloat(h2.get(lhs[1])) == Float.parseFloat(h2.get(rhs[1])))
+                                    return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
 
     private Table load_table(File fileName){
         Table load = new Table();
@@ -121,6 +217,41 @@ public class cs21b059_dbengine{
         }
     }
 
+    private void join_tables(String tab1, String tab2, String condition){
+        File f1 = new File("db/" + tab1 + ".txt");
+        File f2 = new File("db/" + tab2 + ".txt");
+        Table t1 = load_table(f1);
+        Table t2 = load_table(f2);
+
+        t = new Table(); // to store the joined table
+        // create the attributes and map their types for the joined table
+        for(String attr : t1.attributes){
+            t.attributes.add(tab1 + "." + attr);
+            t.types.put(tab1 + "." + attr, t1.types.get(attr));
+        }
+        for(String attr : t2.attributes) {
+            t.attributes.add(tab2 + "." + attr);
+            t.types.put(tab2 + "." + attr, t2.types.get(attr));
+        }
+
+        // insert rows into the joined table to display
+        for(Hashtable<String, String> h1 : t1.rows){
+            for(Hashtable<String, String> h2 : t2.rows){
+                if(evalCondition(t1.tableName, t2.tableName, t1.types, t2.types, h1, h2, condition)){
+                    Hashtable<String, String> newRow = new Hashtable<>();
+                    for(String attr : h1.keySet()) newRow.put(tab1 + "." + attr, h1.get(attr));
+                    for (String attr : h2.keySet()) newRow.put(tab2 + "." + attr, h2.get(attr));
+                    t.rows.add(newRow);
+                }
+            }
+        }
+
+        // display
+        select(t);
+        // reset
+        t = new Table(); 
+    }
+
     public void process(String inst){
         String[] args = inst.split(" ");
         if(args[0].equals("create_table")) {
@@ -144,6 +275,11 @@ public class cs21b059_dbengine{
             t = load_table(fileName);
             select(t);
             t = new Table(); // reset
+        }
+        else if(args[0].equals("join")){
+            args = inst.split(" ", 4);
+            // args = [<join>, <tab1>, <tab2>, <condition>]
+            join_tables(args[1], args[2], args[3]);
         }
     }
 }

@@ -53,16 +53,16 @@ public class cs21b059_parser {
             return intCode;
         }
 
+        // adding attribute without creating a table
         else if(lexemes.length == 2 && dataTypesList.contains(lexemes[0]) && !prev.equals("Create Table")){
-            return "Error: Table not initialized";
+            return "Error: Table not created";
         }
 
         // insert into <tableName> <values>
         else if(lexemes[0].equals("insert") && lexemes[1].equals("into")){
-            lexemes = code.split("\\s+", 4); // the value part will be dealt with later
-
+            lexemes = code.split("\\s+", 4); // create 4 lexemes
+            // remove all whitespaces
             String values = lexemes[3].replaceAll("\\s+", "");
-
             String intCode = "insert_into " + lexemes[2] + " " + values;
             return intCode;
         }
@@ -71,14 +71,24 @@ public class cs21b059_parser {
         else if(lexemes[0].equals("select") && lexemes[1].equals("*") && lexemes[2].equals("from") && lexemes.length == 4){
             String intCode = "select " + lexemes[3];
             return intCode;
-        }        
+        } 
+        
+        // join <table1name> <table2name> where <condition>
+        else if(lexemes[0].equals("join")){
+            lexemes = code.split("\\s+", 5); // create 5 lexemes
+            String intCode = "join " + lexemes[1] + " " + lexemes[2] + " " + lexemes[4];
+            return intCode;
+        }
+
         else{
             return "Error: Unrecognizable instruction";
         }
     }
     public static void main(String[] args) {
+
+        String queryFileName = "joinTables";
         
-        File fr = new File("test/cs21b059.query");
+        File fr = new File("test/" + queryFileName + ".query");
         try{
             BufferedReader br = new BufferedReader(new FileReader(fr));
             String inst;
@@ -86,7 +96,7 @@ public class cs21b059_parser {
 
             // generate intermediate code
             try{
-                FileWriter fw = new FileWriter("test/cs21b059.query.code");
+                FileWriter fw = new FileWriter("test/" + queryFileName + ".query.code");
                 while ((inst = br.readLine()) != null) {
                     String intCode = getIntermediateCode(inst);
                     if(intCode.substring(0, 5).equals("Error")){
@@ -112,7 +122,7 @@ public class cs21b059_parser {
         }
 
         // process the intermediate code
-        fr = new File("test/cs21b059.query.code");
+        fr = new File("test/" + queryFileName + ".query.code");
         cs21b059_dbengine dbe = new cs21b059_dbengine();
         try{
             BufferedReader br = new BufferedReader(new FileReader(fr));
