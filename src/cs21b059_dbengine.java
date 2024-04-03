@@ -4,14 +4,19 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 
 class Table{
+    public int bufferSize = 30; // max number of rows to load into the table
     public String tableName; 
     public ArrayList<String> attributes = new ArrayList<>();
-    public Hashtable<String, String> types = new Hashtable<>(); // attribute - type mapping
+    public Hashtable<String, String> types = new Hashtable<>(); // attribute-type mapping
     public ArrayList<Hashtable<String, String>> rows = new ArrayList<>();
 }
 
 public class cs21b059_dbengine{
     private Table t;
+    // number of lines read from the file; helps when bufferSize < number of lines in the file
+    private int linesRead = 0;
+    // false when file isn't read completely
+    private boolean fileReadComplete = false;
 
     private boolean evalCondition(String tname1, String tname2, Hashtable<String, String> types1, Hashtable<String, String> types2, Hashtable<String, String> h1, Hashtable<String, String> h2, String condition){
         String[] tokens = condition.split(" ");
@@ -109,17 +114,22 @@ public class cs21b059_dbengine{
         return false;
     }
 
-    private Table load_table(File fileName){
+    private Table load_table(File fileName, boolean attrOnly){
         Table load = new Table();
         load.tableName = fileName.getName();
 
-        if(fileName.length() == 0) return load;
+        if(fileName.length() == 0) return load; // empty file
 
         try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
             String line;
             int numLines = 0;
             while ((line = reader.readLine()) != null) {
-                if(line.trim().isEmpty()) return load; // empty file
+                if(line.trim().isEmpty()) {
+                    // empty line => EOF
+                    fileReadComplete = true;
+                    linesRead = 0;
+                    return load;
+                }
 
                 if (numLines == 0) {
                     String[] values = line.split("[;-]+");
@@ -127,21 +137,35 @@ public class cs21b059_dbengine{
                         load.attributes.add(values[i]);
                         load.types.put(values[i], values[i+1]);
                     }
+                    if(attrOnly) return load;
                 } else {
-                    String[] values = line.split(";");
-                    Hashtable<String, String> row = new Hashtable<>();
-                    for (int i = 0; i < values.length; i++) {
-                        row.put(load.attributes.get(i), values[i]);
+                    if(numLines > linesRead){
+                        String[] values = line.split(";");
+                        Hashtable<String, String> row = new Hashtable<>();
+                        for (int i = 0; i < values.length; i++) {
+                            row.put(load.attributes.get(i), values[i]);
+                        }
+                        load.rows.add(row);
                     }
-                    load.rows.add(row);
                 }
                 numLines++;
+
+                // first iteration, one extra line read for field names
+                if((numLines-1-linesRead == load.bufferSize && linesRead == 0) || (numLines-linesRead == load.bufferSize && linesRead != 0)){
+                    linesRead = numLines;
+                    break;
+                }
+            }
+            
+            // EOF if not hit above
+            if((line = reader.readLine()) == null){
+                fileReadComplete = true;
+                linesRead = 0;
             }
         } catch (IOException e) {
             System.err.println("Error reading file: " + e.getMessage());
         }
 
-        System.out.println("Loaded table " + load.tableName.substring(0, load.tableName.length()-4) + " from disk");
         return load;
     }
 
@@ -163,8 +187,6 @@ public class cs21b059_dbengine{
             System.err.println("Error inserting to table: " + e.getMessage());
             return;
         }
-
-        System.out.println("Saved table " + table.tableName.substring(0, table.tableName.length() - 4) + " to disk");
     }
 
     private void create_table(String tableName){
@@ -196,20 +218,31 @@ public class cs21b059_dbengine{
 
         if(newRowValues.length != table.attributes.size()){
             System.out.println("Trying to insert unequal values to attributes in " + t.tableName.substring(0, t.tableName.length() - 4) + " - " + values);
+            for(int i = 0; i < 100000; i++){}
             return;
         }
 
-        Hashtable<String, String> newRow = new Hashtable<>();
-        for(int i = 0; i < t.attributes.size(); i++) newRow.put(t.attributes.get(i), newRowValues[i]);
-        t.rows.add(newRow);
+        try (FileWriter writer = new FileWriter("db/" + table.tableName, true)) {
+            String newRow = "";
+            for(String value : newRowValues) newRow += value + ";";
+            writer.write(System.lineSeparator());
+            writer.write(newRow);
+            writer.close();
+        } catch (IOException e) {
+            System.err.println("Error inserting to table: " + e.getMessage());
+            return;
+        }
 
         System.out.println("Inserted to table " + t.tableName.substring(0, t.tableName.length() - 4));
     }
 
     private void select(Table table){
-        // display the fields first, and then the rows
-        for (String attr : table.attributes) System.out.print(attr + "\t|");
-        System.out.println();
+        if(linesRead == 0 && !fileReadComplete){
+            // display the fields first, and then the rows
+            for (String attr : table.attributes)
+                System.out.print(attr + "\t|");
+            System.out.println();
+        }
 
         for (int i = 0; i < table.rows.size(); i++) {
             for (String attr : table.attributes) System.out.print(table.rows.get(i).get(attr) + "\t|");
@@ -220,8 +253,8 @@ public class cs21b059_dbengine{
     private void join_tables(String tab1, String tab2, String condition){
         File f1 = new File("db/" + tab1 + ".txt");
         File f2 = new File("db/" + tab2 + ".txt");
-        Table t1 = load_table(f1);
-        Table t2 = load_table(f2);
+        Table t1 = load_table(f1, false);
+        Table t2 = load_table(f2, false);
 
         t = new Table(); // to store the joined table
         // create the attributes and map their types for the joined table
@@ -257,7 +290,7 @@ public class cs21b059_dbengine{
         if(args[0].equals("create_table")) {
             create_table(args[1]);
             File fileName = new File("db/" + args[1] + ".txt");
-            t = load_table(fileName);
+            t = load_table(fileName, false);
         }
         else if(args[0].equals("add_attribute")) {
             add_attribute(args[2], args[3]);
@@ -265,16 +298,18 @@ public class cs21b059_dbengine{
         }
         else if(args[0].equals("insert_into")) {
             File fileName = new File("db/" + args[1] + ".txt");
-            t = load_table(fileName);
+            t = load_table(fileName, true);
             insert_into(t, args[2]);
-            save_table(t);
             t = new Table(); // reset
         }
         else if(args[0].equals("select")) {
             File fileName = new File("db/" + args[1] + ".txt");
-            t = load_table(fileName);
-            select(t);
-            t = new Table(); // reset
+            while(!fileReadComplete){
+                t = load_table(fileName, false);
+                select(t);
+            }
+            fileReadComplete = false; // reset boolean
+            t = new Table(); // reset table instance
         }
         else if(args[0].equals("join")){
             args = inst.split(" ", 4);

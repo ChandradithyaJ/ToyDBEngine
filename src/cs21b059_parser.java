@@ -86,7 +86,7 @@ public class cs21b059_parser {
     }
     public static void main(String[] args) {
 
-        String queryFileName = "joinTables";
+        String queryFileName = "cs21b059";
         
         File fr = new File("test/" + queryFileName + ".query");
         try{
