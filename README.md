@@ -14,9 +14,9 @@ Modifiable buffer size to reduce the number of records loaded into RAM at once
 ## Tests
 In the test folder, query files are present which are read and converted to intermediate code (.query.code files).
 
-Change the ```queryFileName``` variable in cs21b059_parser.java to a query file of your choice.
+Change the ```queryFileName``` variable in ```cs21b059_parser.java``` to a query file of your choice.
 
-```cs21b059.query``` is to create two tables with random values.
+```cs21b059.query``` is to create two tables with random values. \
 ```joinTables.query``` is to perform a join operation with a condition.
 
 ## Running
