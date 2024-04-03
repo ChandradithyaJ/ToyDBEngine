@@ -1,7 +1,7 @@
+package src;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
-
 
 public class cs21b059_parser {
     private static String prev = "null";
@@ -78,7 +78,7 @@ public class cs21b059_parser {
     }
     public static void main(String[] args) {
         
-        File fr = new File("cs21b059.query");
+        File fr = new File("test/cs21b059.query");
         try{
             BufferedReader br = new BufferedReader(new FileReader(fr));
             String inst;
@@ -86,7 +86,7 @@ public class cs21b059_parser {
 
             // generate intermediate code
             try{
-                FileWriter fw = new FileWriter("cs21b059.query.code");
+                FileWriter fw = new FileWriter("test/cs21b059.query.code");
                 while ((inst = br.readLine()) != null) {
                     String intCode = getIntermediateCode(inst);
                     if(intCode.substring(0, 5).equals("Error")){
@@ -112,7 +112,7 @@ public class cs21b059_parser {
         }
 
         // process the intermediate code
-        fr = new File("cs21b059.query.code");
+        fr = new File("test/cs21b059.query.code");
         cs21b059_dbengine dbe = new cs21b059_dbengine();
         try{
             BufferedReader br = new BufferedReader(new FileReader(fr));

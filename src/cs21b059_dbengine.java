@@ -1,3 +1,4 @@
+package src;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -49,7 +50,7 @@ public class cs21b059_dbengine{
     }
 
     private void save_table(Table table){
-        try (FileWriter writer = new FileWriter(table.tableName)) {
+        try (FileWriter writer = new FileWriter("db/" + table.tableName)) {
             // field names as the header
             String header = "";
             for(String attr : table.attributes) header += attr + "-" + table.types.get(attr) + ";";
@@ -71,7 +72,7 @@ public class cs21b059_dbengine{
     }
 
     private void create_table(String tableName){
-        File tableFile = new File(tableName + ".txt");
+        File tableFile = new File("db/" + tableName + ".txt");
 
         if(!tableFile.exists()){
             try{
@@ -98,7 +99,7 @@ public class cs21b059_dbengine{
         String[] newRowValues = values.split(",");
 
         if(newRowValues.length != table.attributes.size()){
-            System.out.println("Trying to insert unequal values than attributes in " + t.tableName.substring(0, t.tableName.length() - 4) + " - " + values);
+            System.out.println("Trying to insert unequal values to attributes in " + t.tableName.substring(0, t.tableName.length() - 4) + " - " + values);
             return;
         }
 
@@ -124,7 +125,7 @@ public class cs21b059_dbengine{
         String[] args = inst.split(" ");
         if(args[0].equals("create_table")) {
             create_table(args[1]);
-            File fileName = new File(args[1] + ".txt");
+            File fileName = new File("db/" + args[1] + ".txt");
             t = load_table(fileName);
         }
         else if(args[0].equals("add_attribute")) {
@@ -132,14 +133,14 @@ public class cs21b059_dbengine{
             save_table(t);
         }
         else if(args[0].equals("insert_into")) {
-            File fileName = new File(args[1] + ".txt");
+            File fileName = new File("db/" + args[1] + ".txt");
             t = load_table(fileName);
             insert_into(t, args[2]);
             save_table(t);
             t = new Table(); // reset
         }
         else if(args[0].equals("select")) {
-            File fileName = new File(args[1] + ".txt");
+            File fileName = new File("db/" + args[1] + ".txt");
             t = load_table(fileName);
             select(t);
             t = new Table(); // reset
