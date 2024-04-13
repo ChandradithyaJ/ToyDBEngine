@@ -8,7 +8,7 @@ Currently supporting the following operations:
   - select * from {tableName} (display all the rows in the table chosen)
   - join {table1Name} {table2Name} where {condition}
 
-## Other features
+## Other Features
 Modifiable buffer size to reduce the number of records loaded into RAM at once
 
 ## Tests
